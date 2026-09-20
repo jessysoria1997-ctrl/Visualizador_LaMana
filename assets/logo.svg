@@ -1,0 +1,9 @@
+<!-- ✏️ Reemplaza este archivo por el logo de tu empresa (logo.png o logo.svg)
+     y ajusta la ruta en js/data.js → CONFIG.marca.logo -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="44" height="44">
+  <rect x="1" y="1" width="42" height="42" rx="10" fill="#131F33" stroke="#2B3F5E"/>
+  <path d="M9 29.5 L15.5 17 L22 24 L28.5 11.5 L35 29.5" fill="none"
+        stroke="#F5B44A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="28.5" cy="11.5" r="3" fill="#4ED8CB"/>
+  <path d="M9 33.5 H35" stroke="#2B3F5E" stroke-width="1.6" stroke-linecap="round"/>
+</svg>

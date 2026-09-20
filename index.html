@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Análisis Electoral Territorial</title>
+
+<!-- Tipografías -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
+<!-- El ?v= obliga al navegador a descargar de nuevo al cambiar de versión -->
+<link rel="stylesheet" href="css/styles.css?v=3.5">
+</head>
+
+<body>
+
+<!-- ══ ENCABEZADO ═══════════════════════════════════════════════════════════ -->
+<header class="cabecera">
+  <button id="btn-panel" class="btn-panel" type="button" aria-label="Mostrar filtros">
+    <span></span><span></span><span></span>
+  </button>
+
+  <div class="marca">
+    <img id="marca-logo" class="marca-logo" alt="">
+    <div class="marca-txt">
+      <h1 id="marca-titulo">ANÁLISIS ELECTORAL TERRITORIAL</h1>
+      <p id="marca-subtitulo">Plataforma de inteligencia geográfica y análisis de preinscritos</p>
+    </div>
+  </div>
+
+  <div class="cabecera-der">
+    <span id="etiqueta-demo" class="pill-demo" hidden>MODO DEMOSTRACIÓN</span>
+    <div id="dig-encabezado" class="dig-header"></div>
+    <div class="marca-meta">
+      <strong id="marca-empresa">INTELIGENCIA TERRITORIAL</strong>
+      <span id="marca-ciclo">Elecciones Seccionales 2027</span>
+    </div>
+    <div class="usuario-chip" id="usuario-chip" hidden>
+      <span class="usuario-txt">
+        <b id="usuario-nombre">—</b>
+        <i id="usuario-alcance">—</i>
+      </span>
+      <button type="button" id="btn-salir" title="Cerrar sesión">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Indicador ligero para las actualizaciones de filtros -->
+<div id="barra-progreso" class="barra-progreso" hidden><i></i></div>
+
+<!-- ══ NAVEGACIÓN ENTRE SECCIONES ══════════════════════════════════════════ -->
+<nav class="secciones" id="nav-secciones">
+  <button type="button" class="sec-btn activa" data-seccion="preinscritos">
+    <span class="sec-ico">👥</span>
+    <span class="sec-txt"><b>Preinscritos</b><i>Composición del padrón · 2027</i></span>
+  </button>
+  <button type="button" class="sec-btn" data-seccion="historico">
+    <span class="sec-ico">📊</span>
+    <span class="sec-txt"><b>Histórico electoral</b><i>Evolución y resultados · 2004–2023</i></span>
+  </button>
+</nav>
+
+<div class="cuerpo">
+
+  <!-- ══ PANEL LATERAL DE FILTROS ══════════════════════════════════════════ -->
+  <aside class="lateral" id="lateral">
+
+  <!-- Filtros de PREINSCRITOS · intactos, solo envueltos para poder alternar -->
+  <div class="panel-vista" id="filtros-preinscritos">
+
+    <section class="bloque">
+      <h2 class="bloque-tit"><i class="ix">01</i> Dignidad</h2>
+      <p class="bloque-ayuda">Define el nivel geográfico del análisis.</p>
+      <div id="sel-dignidad" class="dig-grupo"></div>
+    </section>
+
+    <section class="bloque">
+      <h2 class="bloque-tit"><i class="ix">02</i> Territorio</h2>
+
+      <div class="campo">
+        <label for="sel-provincia">Provincia</label>
+        <div class="select-wrap">
+          <select id="sel-provincia"><option value="">Todas las provincias</option></select>
+        </div>
+      </div>
+
+      <div class="campo deshabilitado">
+        <label for="sel-canton">Cantón</label>
+        <div class="select-wrap">
+          <select id="sel-canton" disabled><option value="">Seleccione un cantón</option></select>
+        </div>
+        <small class="campo-nota">Se habilita al elegir una provincia.</small>
+      </div>
+
+      <button id="btn-limpiar" class="btn btn-limpiar" type="button">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5"/></svg>
+        Limpiar filtros
+      </button>
+    </section>
+
+  </div>
+
+  <!-- Filtros de las secciones nuevas -->
+  <div class="panel-vista" id="filtros-historico" hidden></div>
+
+    <footer class="lateral-pie">
+      <p>Fuente: base de preinscritos cargada en <code>data/</code>.
+         Cartografía: capas provincial, cantonal y parroquial del proyecto.</p>
+      <p class="sello-version">Versión <span id="marca-version">—</span></p>
+    </footer>
+  </aside>
+  <div id="velo-panel" class="velo-panel"></div>
+
+  <!-- ══ ÁREA PRINCIPAL ════════════════════════════════════════════════════ -->
+  <main class="principal">
+
+  <!-- ══ VISTA 1 · PREINSCRITOS ═══════════════════════════════════════════
+       Contenido actual sin un solo cambio: únicamente queda envuelto para
+       poder alternar entre secciones. -->
+  <section class="vista" id="vista-preinscritos">
+
+    <!-- Indicadores -->
+    <section class="kpis">
+      <article class="kpi destacado">
+        <p class="kpi-etq">Total preinscritos</p>
+        <p class="kpi-val" id="kpi-total">0</p>
+        <p class="kpi-sub" id="kpi-total-sub">—</p>
+      </article>
+      <article class="kpi">
+        <p class="kpi-etq">Provincias</p>
+        <p class="kpi-val" id="kpi-provincias">0</p>
+        <p class="kpi-sub" id="kpi-provincias-sub">—</p>
+      </article>
+      <article class="kpi">
+        <p class="kpi-etq">Cantones</p>
+        <p class="kpi-val" id="kpi-cantones">0</p>
+        <p class="kpi-sub" id="kpi-cantones-sub">—</p>
+      </article>
+      <article class="kpi">
+        <p class="kpi-etq">Organizaciones</p>
+        <p class="kpi-val" id="kpi-organizaciones">0</p>
+        <p class="kpi-sub" id="kpi-organizaciones-sub">—</p>
+      </article>
+      <article class="kpi territorio">
+        <p class="kpi-etq">Territorio seleccionado</p>
+        <p class="kpi-val chico" id="kpi-territorio">Ecuador</p>
+        <p class="kpi-sub" id="kpi-territorio-sub">—</p>
+      </article>
+    </section>
+
+    <!-- Mapa + panel de análisis -->
+    <section class="fila-mapa">
+
+      <div class="tarjeta mapa-tarjeta" id="mapa-shell">
+        <div class="ruta">
+          <div class="ruta-niveles">
+            <button type="button" data-nivel="pais" class="rt">
+              <i class="rt-n">1</i><span class="rt-etq">Ecuador</span></button>
+            <svg class="rt-sep" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+            <button type="button" data-nivel="provincia" class="rt">
+              <i class="rt-n">2</i><span class="rt-etq">Provincia</span></button>
+            <svg class="rt-sep" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+            <button type="button" data-nivel="canton" class="rt">
+              <i class="rt-n">3</i><span class="rt-etq">Cantón</span></button>
+            <svg class="rt-sep" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+            <button type="button" data-nivel="parroquia" class="rt">
+              <i class="rt-n">4</i><span class="rt-etq">Parroquia</span></button>
+          </div>
+          <span class="ruta-nivel-base" id="ruta-nivel-base">Nivel base: provincial</span>
+        </div>
+        <div id="mapa"></div>
+      </div>
+
+      <div class="tarjeta panel-territorial" id="panel-territorial">
+        <h2 class="tarjeta-tit">Análisis territorial</h2>
+
+        <dl class="pt-lista">
+          <div><dt>Provincia</dt><dd id="pt-provincia">—</dd></div>
+          <div><dt>Cantón</dt><dd id="pt-canton">—</dd></div>
+          <div><dt>Dignidad</dt><dd id="pt-dignidad">—</dd></div>
+          <div><dt>Nivel geográfico</dt><dd id="pt-nivel">—</dd></div>
+        </dl>
+
+        <div class="pt-destacado">
+          <p class="pt-etq">Preinscritos</p>
+          <p class="pt-num" id="pt-preinscritos">0</p>
+          <div class="pt-barra-fondo"><div class="pt-barra" id="pt-barra"></div></div>
+        </div>
+
+        <div class="pt-doble" id="pt-fila-densidad" hidden>
+          <div><p class="pt-etq">Electores</p><p class="pt-med" id="pt-poblacion">—</p></div>
+          <div><p class="pt-etq">Por 100 mil electores</p><p class="pt-med" id="pt-densidad">—</p></div>
+        </div>
+
+        <p class="pt-nota">
+          Haz clic sobre el mapa para enfocar un territorio; vuelve a hacer clic
+          para deseleccionarlo.
+        </p>
+      </div>
+    </section>
+
+    <!-- Electores · La Maná: juntas y recintos. Solo aparece con el cantón
+         La Maná seleccionado (js/lamana.js); el resto de la sección queda
+         exactamente como estaba. -->
+    <section class="tarjeta bloque-lamana" id="bloque-lamana" hidden>
+      <header class="tabla-cab">
+        <div>
+          <h2 class="tarjeta-tit">Electores · La Maná</h2>
+          <p class="tarjeta-sub">Juntas receptoras y recintos electorales</p>
+        </div>
+      </header>
+      <div class="lm-kpis" id="lm-kpis"></div>
+      <div class="lm-cuerpo">
+        <article class="lm-col" id="lm-recintos"></article>
+      </div>
+    </section>
+
+    <!-- Resultados de la elección anterior -->
+    <section class="tarjeta bloque-resultados" id="bloque-resultados" hidden>
+      <header class="tabla-cab">
+        <div>
+          <h2 class="tarjeta-tit">Resultados electorales <span id="res-anio">2023</span></h2>
+          <p class="tarjeta-sub" id="res-sub">—</p>
+        </div>
+        <span class="res-sello" id="res-sello">Elección anterior</span>
+      </header>
+
+      <div class="res-cuerpo">
+        <article class="res-ganador">
+          <p class="pt-etq" id="res-titulo-ganador">Candidato ganador</p>
+          <p class="res-nombre" id="res-nombre">—</p>
+          <p class="res-op" id="res-op">—</p>
+          <div class="res-cifras">
+            <div><p class="pt-etq">Votos</p><p class="res-votos" id="res-votos">—</p></div>
+            <div><p class="pt-etq">Votos válidos</p><p class="pt-med" id="res-pct">—</p></div>
+            <div><p class="pt-etq">Dignidad</p><p class="pt-med" id="res-dignidad">—</p></div>
+          </div>
+        </article>
+
+        <div class="res-tabla">
+          <div class="tabla-scroll res-scroll">
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th class="num res-pos"><button type="button">Pos.</button></th>
+                  <th><button type="button">Candidato</button></th>
+                  <th><button type="button">Organización política</button></th>
+                  <th class="num"><button type="button">Votos</button></th>
+                  <th class="num"><button type="button">%</button></th>
+                </tr>
+              </thead>
+              <tbody id="res-cuerpo-tabla"></tbody>
+            </table>
+          </div>
+          <footer class="tabla-pie">
+            <p id="res-conteo">—</p>
+          </footer>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gráficos -->
+    <section class="graficos">
+      <article class="tarjeta grafico">
+        <header><h2 class="tarjeta-tit">Top 10 territorios</h2>
+          <p class="tarjeta-sub" id="g1-sub">—</p></header>
+        <div class="lienzo alto"><canvas id="g1"></canvas></div>
+      </article>
+
+      <article class="tarjeta grafico">
+        <header><h2 class="tarjeta-tit">Distribución territorial</h2>
+          <p class="tarjeta-sub" id="g2-sub">—</p></header>
+        <div class="lienzo alto"><canvas id="g2"></canvas></div>
+      </article>
+
+      <article class="tarjeta grafico">
+        <header><h2 class="tarjeta-tit">Participación porcentual</h2>
+          <p class="tarjeta-sub" id="g3-sub">—</p></header>
+        <div class="lienzo"><canvas id="g3"></canvas></div>
+      </article>
+
+      <article class="tarjeta grafico">
+        <header><h2 class="tarjeta-tit">Organizaciones políticas</h2>
+          <p class="tarjeta-sub" id="g4-sub">—</p></header>
+        <div class="lienzo"><canvas id="g4"></canvas></div>
+      </article>
+    </section>
+
+    <!-- Tabla -->
+    <section class="tarjeta bloque-tabla">
+      <header class="tabla-cab">
+        <div>
+          <h2 class="tarjeta-tit">Detalle de datos</h2>
+          <p class="tarjeta-sub">Búsqueda, orden y paginación sobre los registros filtrados.</p>
+        </div>
+        <div class="tabla-ctrl">
+          <div class="segmentado">
+            <button type="button" data-vista="territorios" class="activo">Territorios</button>
+            <button type="button" data-vista="preinscritos">Preinscritos</button>
+          </div>
+          <div class="buscador">
+            <svg viewBox="0 0 24 24" class="ico"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+            <input id="tabla-busqueda" type="search" placeholder="Buscar territorio, organización o persona…">
+          </div>
+          <div class="select-wrap chico">
+            <select id="tabla-filas" aria-label="Registros por página">
+              <option value="10">10</option>
+              <option value="15" selected>15</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+      </header>
+
+      <div class="tabla-scroll">
+        <table class="tabla">
+          <thead id="tabla-cabecera"></thead>
+          <tbody id="tabla-cuerpo"></tbody>
+        </table>
+      </div>
+
+      <footer class="tabla-pie">
+        <p id="tabla-conteo">—</p>
+        <nav id="tabla-paginas" class="paginacion"></nav>
+      </footer>
+    </section>
+
+    <!-- Grupo etario · bloque añadido al final, el resto de la sección
+         queda exactamente como estaba -->
+    <section class="tarjeta bloque-etario" id="bloque-etario" hidden>
+      <header class="tabla-cab">
+        <div>
+          <h2 class="tarjeta-tit">Distribución por grupo etario</h2>
+          <p class="tarjeta-sub" id="et-sub">—</p>
+        </div>
+        <span class="sec-badge fijo">2027</span>
+      </header>
+      <div class="etario-cuerpo">
+        <div class="lienzo etario-lienzo"><canvas id="et-grafico"></canvas></div>
+        <div id="et-cifras" class="etario-cifras"></div>
+      </div>
+    </section>
+
+  </section>
+  <!-- ══ FIN VISTA 1 ═════════════════════════════════════════════════════ -->
+
+  <!-- Las secciones nuevas se construyen desde js/secciones.js -->
+  <section class="vista" id="vista-historico" hidden></section>
+
+  </main>
+</div>
+
+<!-- ══ CAPAS DE ESTADO ══════════════════════════════════════════════════════ -->
+<div id="capa-carga" class="capa-carga" hidden>
+  <div class="cargador">
+    <div class="barra"><i></i></div>
+    <p>Actualizando el análisis…</p>
+  </div>
+</div>
+
+<div id="capa-error" class="capa-error" hidden>
+  <div class="error-caja">
+    <div class="error-icono">
+      <svg viewBox="0 0 24 24"><path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+    </div>
+    <h2>No se pudo completar la carga</h2>
+    <div id="error-detalle" class="error-detalle"></div>
+    <div class="error-ayuda">
+      <p><b>Comprobaciones habituales</b></p>
+      <ol>
+        <li>Los archivos están dentro de la carpeta <code>data/</code>.</li>
+        <li>El proyecto se abre desde un servidor local
+            (<code>python -m http.server 8000</code>), no con doble clic.</li>
+        <li>Los nombres de columna coinciden con
+            <code>js/data.js → CONFIG.columnasExcel</code>.</li>
+      </ol>
+    </div>
+    <button id="error-cerrar" class="btn" type="button">Entendido</button>
+  </div>
+</div>
+
+<div id="avisos" class="avisos"></div>
+
+<!-- ══ ACCESO ═══════════════════════════════════════════════════════════════ -->
+<div id="capa-acceso" class="capa-acceso" hidden>
+  <form class="acceso-caja" id="form-acceso" autocomplete="off">
+    <div class="acceso-marca">
+      <img src="assets/logo.svg" alt="" class="acceso-logo">
+      <div>
+        <h1>Análisis Electoral Territorial</h1>
+        <p>Plataforma de inteligencia geográfica</p>
+      </div>
+    </div>
+
+    <label for="ac-usuario">Usuario</label>
+    <input id="ac-usuario" type="text" autocomplete="username" spellcheck="false" required>
+
+    <label for="ac-clave">Contraseña</label>
+    <input id="ac-clave" type="password" autocomplete="current-password" required>
+
+    <p class="acceso-error" id="ac-error" hidden></p>
+    <button type="submit" class="btn acceso-btn">Entrar</button>
+  </form>
+</div>
+
+<!-- ══ LIBRERÍAS ════════════════════════════════════════════════════════════ -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<!-- ══ APLICACIÓN ═══════════════════════════════════════════════════════════ -->
+<script src="js/data.js?v=3.5"></script>
+<script src="js/acceso.js?v=3.5"></script>
+<script src="js/map.js?v=3.5"></script>
+<script src="js/charts.js?v=3.5"></script>
+<script src="js/app.js?v=3.5"></script>
+<script src="js/secciones.js?v=3.5"></script>
+<script src="js/lamana.js?v=3.5"></script>
+</body>
+</html>
