@@ -193,7 +193,9 @@ async function cargarBase(que) {
    igual que a prefectos y alcaldes.
    ------------------------------------------------------------------------- */
 
-const HIST_EXTRA = { postulantes: null };
+/* replicas: años en que una dignidad de concejales no existía en la base y se
+   copió de la otra (preparar_historico_dignidades.py), para avisarlo. */
+const HIST_EXTRA = { postulantes: null, replicas: {} };
 
 async function sumarDignidadesHistorico() {
   let j;
@@ -236,6 +238,7 @@ async function sumarDignidadesHistorico() {
       HIST.etiquetas[dig] = (j.etiquetas || {})[dig] || dig;
     }
     HIST_EXTRA.postulantes = j.postulantes || null;
+    HIST_EXTRA.replicas = j.replicas || {};
   } catch (e) {
     console.warn('[Dashboard] no se pudieron sumar concejales y vocales:', e);
   }
@@ -533,11 +536,24 @@ const sq = (s) => document.querySelector(s);
 const dec = (n, d = 2) => (n || 0).toLocaleString('es-EC',
   { minimumFractionDigits: d, maximumFractionDigits: d });
 
+/**
+ * Parroquias que eligen la dignidad: los concejales urbanos, solo las
+ * urbanas; los rurales, solo las rurales (propiedad «estado» de la capa).
+ * Las demás dignidades usan todas. Si la capa no trae «estado», todas.
+ */
+function parroquiasDeDignidad(dignidad, parrs) {
+  const d = (CONFIG.dignidadesHistorico || []).find(x => x.id === dignidad);
+  if (!d || !d.parroquias) return parrs;
+  const tipo = d.parroquias === 'urbanas' ? 'URBANA' : 'RURAL';
+  const sub = parrs.filter(p => normalizarTexto(String((p.properties || {}).estado || '')) === tipo);
+  return sub.length ? sub : parrs;
+}
+
 function selectoresTerritorio(f, alCambiar, prefijo) {
   const provs = provinciasSeleccionables();
   const cantones = f.provK ? ((TERRITORIO.porProvK.get(f.provK) || {}).cantones || []) : [];
   const parrs = (f.provK && f.cantK)
-    ? (TERRITORIO.parroquiasPorCant.get(f.provK + '|' + f.cantK) || []) : [];
+    ? parroquiasDeDignidad(f.dignidad, TERRITORIO.parroquiasPorCant.get(f.provK + '|' + f.cantK) || []) : [];
 
   const html = `
     <div class="campo">
@@ -996,6 +1012,14 @@ function actualizarEtario() {
 
 function construirPanelHistorico() {
   const f = SEC.filtros.historico;
+  /* Al pasar, por ejemplo, de concejales urbanos a rurales, una parroquia que
+     la nueva dignidad no elige deja de estar seleccionada. */
+  const restringida = (CONFIG.dignidadesHistorico || []).some(d => d.id === f.dignidad && d.parroquias);
+  if (restringida && f.parrK && f.provK && f.cantK &&
+      !parroquiasDeDignidad(f.dignidad, TERRITORIO.parroquiasPorCant.get(f.provK + '|' + f.cantK) || [])
+        .some(p => p.__key === f.parrK)) {
+    f.parrK = '';
+  }
   const dig = botonesDignidad(f, renderHistorico, 'h');
   const terr = selectoresTerritorio(f, renderHistorico, 'h');
 
@@ -1055,6 +1079,14 @@ function renderHistorico() {
   const nPostulantes = postulantesDe(f.dignidad, ult.anio, f.provK, f.cantK, f.parrK);
   const sinPostulantes = esLista && !nPostulantes;
   const notaLista = esLista ? notaDignidadLista(f, etq) : '';
+
+  /* Años en que esta dignidad no existía en la base y se replicó la otra de
+     concejales: el aviso solo aparece si alguno de ellos está en pantalla. */
+  const replicados = (HIST_EXTRA.replicas[f.dignidad] || [])
+    .filter(a => serie.some(s => s.anio === a));
+  const notaReplica = replicados.length ? `<p class="sec-nota">${replicados.join(' y ')}:
+    Esta dignidad no existía de forma independiente en este año; se replica la
+    información disponible para mantener la comparación histórica.</p>` : '';
 
   /* Reescribir la vista destruye los contenedores de los mapas, así que hay
      que soltar las instancias de Leaflet antes: si no, quedan apuntando a
@@ -1122,7 +1154,7 @@ function renderHistorico() {
 
     <section class="tarjeta sec-cabecera">
       <h2 class="tarjeta-tit">Evolución electoral · ${etq} · ${ambito}</h2>
-      <p class="tarjeta-sub">Comparación automática de ${serie.map(s => s.anio).join(' · ')}${nota ? ' · ' + nota : ''}</p>
+      <p class="tarjeta-sub">Comparación automática de ${serie.map(s => s.anio).join(' · ')}${nota ? ' · ' + nota : ''}</p>${notaReplica}
       ${nota ? `<p class="sec-nota">Este ámbito reúne varias contiendas distintas:
         la primera fuerza y el índice de fragmentación describen el conjunto, no
         una elección concreta. Filtra hasta
@@ -1275,7 +1307,7 @@ function renderHistorico() {
             <th><button type="button">Organización política</button></th>
             <th class="num"><button type="button">Votos</button></th>
             <th class="num"><button type="button">%</button></th></tr></thead>
-          <tbody>${ult.organizaciones.map((o, i) => `<tr>
+          <tbody>${ult.organizaciones.map((o, i) => `<tr${i === 0 ? ' class="fila-ganador"' : ''}>
             <td class="num">${i + 1}</td><td class="fuerte">${tituloCase(o.op)}</td>
             <td class="num">${fmtNum(o.votos)}</td>
             <td class="num">${fmtPct(o.pct)}</td></tr>`).join('')}</tbody>

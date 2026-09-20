@@ -1080,3 +1080,16 @@ body.sin-sesion .cuerpo{filter:blur(6px);pointer-events:none;user-select:none}
 @media (max-width:520px){
   .lm-kpis{grid-template-columns:1fr}
 }
+
+/* ── Ganador más visible ─────────────────────────────────────────────────
+   Solo tamaño, peso y aire: mismos colores, tarjetas y estructura.       */
+/* Preinscritos · Resultados electorales: tarjeta y primera fila */
+.res-ganador .res-nombre{font-size:22px;line-height:1.22}
+.res-scroll tr.res-primero td{font-size:13.5px;padding-top:12px;padding-bottom:12px}
+.res-scroll tr.res-primero td.fuerte:not(.num){font-weight:700}
+/* Histórico · primer lugar de cada año, primera fuerza y la más votada */
+.tabla td.lugar-1{font-size:13.5px}
+.tabla td.lugar-1 b{font-weight:700}
+.fuerza:not(.segunda) .fuerza-nom{font-size:15px;font-weight:700}
+.tabla tr.fila-ganador td{font-size:13.5px;padding-top:12px;padding-bottom:12px}
+.tabla tr.fila-ganador td.fuerte{font-weight:700}

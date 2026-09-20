@@ -11,7 +11,7 @@ const CONFIG = {
   /* Versión del tablero. Aparece al pie del panel lateral y en la consola
      del navegador: sirve para comprobar de un vistazo que no se está
      ejecutando una copia antigua guardada en la caché.                    */
-  version: '3.5',
+  version: '3.7',
 
   /* ── ✏️ EDITAR · MARCA ───────────────────────────────────────────────────
      Nombre de tu consultora, títulos del encabezado y logo.               */
@@ -101,10 +101,14 @@ const CONFIG = {
      Preinscritos no las usa. Sus datos están en data/historico_dignidades.json
      (preparar_historico_dignidades.py) y cada botón aparece solo si hay datos
      para el usuario que entra.
-     'eleccion' es el ámbito en que se elige la dignidad.                  */
+     'eleccion' es el ámbito en que se elige la dignidad.
+     'parroquias' limita el selector de parroquia a las urbanas o las rurales
+     (propiedad «estado» de la capa parroquial).                          */
   dignidadesHistorico: [
-    { id: 'CONCEJALES', etiqueta: 'Concejales', eleccion: 'canton',
-      descripcion: 'Análisis cantonal' },
+    { id: 'CONCEJALES_URBANOS', etiqueta: 'Concejales urbanos', eleccion: 'canton',
+      descripcion: 'Análisis cantonal', parroquias: 'urbanas' },
+    { id: 'CONCEJALES_RURALES', etiqueta: 'Concejales rurales', eleccion: 'canton',
+      descripcion: 'Análisis cantonal', parroquias: 'rurales' },
     { id: 'VOCALES', etiqueta: 'Vocales de juntas parroquiales', eleccion: 'parroquia',
       descripcion: 'Análisis parroquial' }
   ],
@@ -121,8 +125,13 @@ const CONFIG = {
       acento: '#4ED8CB',
       rampa: ['#DDF3EF', '#A2E0D7', '#5CC4BA', '#2C9A97', '#16626C']
     },
-    /* Solo en Histórico electoral (ver dignidadesHistorico). */
-    CONCEJALES: {
+    /* Solo en Histórico electoral (ver dignidadesHistorico). Urbanos y
+       rurales comparten el color de concejales. */
+    CONCEJALES_URBANOS: {
+      acento: '#BDB7FE',
+      rampa: ['#F0EDFF', '#D4CFFE', '#AFA8FF', '#8580DC', '#55549D']
+    },
+    CONCEJALES_RURALES: {
       acento: '#BDB7FE',
       rampa: ['#F0EDFF', '#D4CFFE', '#AFA8FF', '#8580DC', '#55549D']
     },
